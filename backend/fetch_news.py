@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -138,6 +139,7 @@ def collect(universe, material, use_ai: bool = True, log=print) -> dict[str, dic
         raw[code] = (mat.get(code, []) + google_news(f'"{name}" {code}'))[:10]
 
     stats = {"cached": 0, "ai": 0, "lexicon": 0, "empty": 0, "fail": 0}
+    stop_ai = threading.Event()  # 遇到額度不足／金鑰錯誤就不再呼叫
 
     def work(code_name):
         code, name = code_name
@@ -151,12 +153,18 @@ def collect(universe, material, use_ai: bool = True, log=print) -> dict[str, dic
         if hit and (not client or hit.get("engine") == MODEL):
             stats["cached"] += 1
             return code, hit
-        if client:
+        if client and not stop_ai.is_set():
             try:
                 res = _claude(client, code, name, items)
                 stats["ai"] += 1
             except Exception as e:
                 stats["fail"] += 1
+                msg = str(getattr(e, "message", e))
+                if any(k in msg for k in ("credit balance", "billing", "authentication", "invalid x-api-key")):
+                    if not stop_ai.is_set():
+                        stop_ai.set()
+                        log(f"    ⛔ Claude API 帳戶問題，本次其餘股票改用關鍵字評分：{msg[:160]}")
+                    return code, _lexicon(items)
                 if stats["fail"] <= 3:  # 只印前 3 筆完整原因，避免洗版
                     log(f"    {code} AI 失敗改用關鍵字：{type(e).__name__}: {getattr(e, 'message', e)}")
                 return code, _lexicon(items)  # 不寫入快取，下次會重試 AI

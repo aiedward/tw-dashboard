@@ -45,7 +45,7 @@ GitHub
 1. 把 `tw_dashboard.ipynb` 上傳到 Google 雲端硬碟，用 Colab 開啟（或 Colab → 檔案 → 開啟筆記本 → GitHub 分頁 → 輸入 repo）。
 2. 左側 🔑 **密鑰** 新增下列項目，並開啟「筆記本存取權」：
    - `GH_TOKEN`：上一步的 token
-   - `ANTHROPIC_API_KEY`：Claude API key（消息面 AI 摘要；用 `claude-haiku-5-5`，150 檔每天約 0.01 美元）
+   - `ANTHROPIC_API_KEY`：Claude API key（消息面 AI 摘要；用 `claude-haiku-5-5`，150 檔每天約 0.05 美元，新聞沒變的股票走快取不計費；帳戶需先在 console.anthropic.com → Plans & Billing 儲值）
    - `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`：見第 5 步（選用）
    - `FINMIND_TOKEN`：https://finmindtrade.com 免費註冊（選用，可以提高額度）
 3. 把第 ① 格的 `GITHUB_REPO` 改成 `<帳號>/tw-dashboard`。

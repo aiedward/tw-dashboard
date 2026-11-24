@@ -51,3 +51,22 @@ def test_failure_not_cached(tmp_path, monkeypatch):
     n = len(fake.calls)
     fnews.collect(uni, None, use_ai=True, log=lambda *a: None)
     assert len(fake.calls) == n + 1
+
+
+def test_billing_error_stops_ai(tmp_path, monkeypatch):
+    monkeypatch.setattr(fnews, "CACHE", tmp_path / "news_ai.json")
+    monkeypatch.setattr(fnews, "google_news", lambda q: [{"title": f"新聞 {q}", "link": "", "source": "s",
+                                                          "time": "2026-11-24 10:00", "kind": "news"}])
+
+    class Broke(FakeClient):
+        def create(self, **kw):
+            self.calls.append(kw)
+            raise RuntimeError("Your credit balance is too low to access the Anthropic API.")
+    fake = Broke()
+    monkeypatch.setattr(fnews, "get_secret", lambda k: "x")
+    import anthropic
+    monkeypatch.setattr(anthropic, "Anthropic", lambda api_key: fake)
+    uni = pd.DataFrame({"code": [str(1000 + i) for i in range(30)], "name": [f"S{i}" for i in range(30)]})
+    out = fnews.collect(uni, None, use_ai=True, log=lambda *a: None)
+    assert all(v["engine"] == "lexicon" for v in out.values())
+    assert len(fake.calls) <= 6  # 最多同時在途的請求數，之後全部停呼叫
