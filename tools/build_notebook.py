@@ -43,7 +43,7 @@ md("""
 """),
 code(r'''
 #@title ① 掛載雲端硬碟、取得程式碼 { display-mode: "form" }
-GITHUB_REPO = "YOUR_GITHUB_ID/tw-dashboard"  #@param {type:"string"}
+GITHUB_REPO = "aiedward/tw-dashboard"  #@param {type:"string"}
 DRIVE_DIR = "/content/drive/MyDrive/tw-dashboard"  #@param {type:"string"}
 
 import os, subprocess, sys
