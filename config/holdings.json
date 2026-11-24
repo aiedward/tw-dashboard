@@ -1,0 +1,8 @@
+{
+  "capital": 3000000,
+  "risk_per_trade_pct": 1.0,
+  "positions": [
+    {"code": "2330", "shares": 1000, "cost": 1800, "stop": null, "target": null, "date": "2026-10-01"},
+    {"code": "2317", "shares": 2000, "cost": 210, "stop": null, "target": null, "date": "2026-10-15"}
+  ]
+}

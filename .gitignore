@@ -1,0 +1,9 @@
+.venv/
+cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+# 產生的資料只發佈到 gh-pages 分支
+docs/data/
+docs/_*.html
