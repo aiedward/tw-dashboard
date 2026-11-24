@@ -38,6 +38,27 @@ class StockNews(BaseModel):
     items: list[NewsItem]
 
 
+def _strict(schema: dict) -> dict:
+    """structured outputs 要求每個 object 都有 additionalProperties: false 且列出全部 required。"""
+    defs = schema.pop("$defs", {})
+
+    def fix(node):
+        if isinstance(node, dict):
+            if "$ref" in node:
+                return fix(dict(defs[node["$ref"].split("/")[-1]]))
+            node = {k: fix(v) for k, v in node.items() if k != "title"}
+            if node.get("type") == "object":
+                node["additionalProperties"] = False
+                node["required"] = list(node.get("properties", {}))
+            return node
+        if isinstance(node, list):
+            return [fix(x) for x in node]
+        return node
+    return fix(schema)
+
+
+SCHEMA = _strict(StockNews.model_json_schema())
+
 SYSTEM = ("你是台股產業分析師。根據提供的新聞標題與公司重大訊息，判斷對該股未來 1~4 週股價的影響。"
           "只依據提供的內容判斷，不要臆測；與該公司無關的新聞給 0 分。用繁體中文回答。")
 
@@ -76,16 +97,20 @@ def _lexicon(items: list[dict]) -> dict:
 def _claude(client, code: str, name: str, items: list[dict]) -> dict:
     lines = "\n".join(f"[{i}] ({it['time'][:10]}{'｜重訊' if it['kind'] == 'material' else ''}) {it['title']}"
                       for i, it in enumerate(items))
-    r = client.messages.parse(
-        model=MODEL, max_tokens=2000, output_config={"effort": "low"},
+    # effort 與 format 放在同一個 output_config（不用 parse/output_format，避免 SDK 合併參數）
+    r = client.messages.create(
+        model=MODEL, max_tokens=4000,
+        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
         system=SYSTEM,
         messages=[{"role": "user", "content": f"股票：{code} {name}\n新聞：\n{lines}"}],
-        output_format=StockNews,
     )
-    if r.stop_reason == "refusal" or r.parsed_output is None:
-        return _lexicon(items)
-    d = r.parsed_output.model_dump()
+    if r.stop_reason in ("refusal", "max_tokens"):
+        raise RuntimeError(f"stop_reason={r.stop_reason}")
+    text = next(b.text for b in r.content if b.type == "text")
+    d = StockNews.model_validate_json(text).model_dump()
     d["overall"] = max(-2.0, min(2.0, d["overall"]))
+    for it in d["items"]:
+        it["sentiment"] = max(-2, min(2, it["sentiment"]))
     d["engine"] = MODEL
     return d
 
@@ -112,7 +137,7 @@ def collect(universe, material, use_ai: bool = True, log=print) -> dict[str, dic
     for code, name in rows:
         raw[code] = (mat.get(code, []) + google_news(f'"{name}" {code}'))[:10]
 
-    stats = {"cached": 0, "ai": 0, "lexicon": 0, "empty": 0}
+    stats = {"cached": 0, "ai": 0, "lexicon": 0, "empty": 0, "fail": 0}
 
     def work(code_name):
         code, name = code_name
@@ -121,16 +146,20 @@ def collect(universe, material, use_ai: bool = True, log=print) -> dict[str, dic
             stats["empty"] += 1
             return code, {"overall": 0.0, "summary": "近期無相關新聞", "items": [], "engine": "none"}
         h = hashlib.md5(("|".join(i["title"] for i in items) + (MODEL if client else "lex")).encode()).hexdigest()
-        if h in cache:
+        hit = cache.get(h)
+        # 有 AI 時，忽略先前 AI 失敗留下的關鍵字結果
+        if hit and (not client or hit.get("engine") == MODEL):
             stats["cached"] += 1
-            return code, cache[h]
+            return code, hit
         if client:
             try:
                 res = _claude(client, code, name, items)
                 stats["ai"] += 1
             except Exception as e:
-                log(f"    {code} AI 失敗改用關鍵字：{type(e).__name__}")
-                res = _lexicon(items)
+                stats["fail"] += 1
+                if stats["fail"] <= 3:  # 只印前 3 筆完整原因，避免洗版
+                    log(f"    {code} AI 失敗改用關鍵字：{type(e).__name__}: {getattr(e, 'message', e)}")
+                return code, _lexicon(items)  # 不寫入快取，下次會重試 AI
         else:
             res = _lexicon(items)
             stats["lexicon"] += 1
@@ -141,7 +170,7 @@ def collect(universe, material, use_ai: bool = True, log=print) -> dict[str, dic
     t = time.time()
     with ThreadPoolExecutor(max_workers=6) as ex:
         results = dict(ex.map(work, rows))
-    log(f"  新聞完成 {time.time() - t:.0f}s：AI {stats['ai']}、快取 {stats['cached']}、關鍵字 {stats['lexicon']}、無新聞 {stats['empty']}")
+    log(f"  新聞完成 {time.time() - t:.0f}s：AI {stats['ai']}、快取 {stats['cached']}、AI 失敗 {stats['fail']}、關鍵字 {stats['lexicon']}、無新聞 {stats['empty']}")
 
     # 只保留最近用到的快取，避免無限成長
     keep = {r.get("hash") for r in results.values() if r.get("hash")}
