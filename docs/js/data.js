@@ -67,11 +67,14 @@ export function quote(code) {
 let timer = null;
 export async function startLive() {
   try {
-    const cfg = await getJSON("live.json", false);
-    const url = store.get("liveUrl", null) || cfg.url;
+    // Quick tunnel 網址每次啟動都會變 → 先試 live.json 的最新網址，手動指定的只當備援
+    const cfg = await getJSON("live.json", false).catch(() => ({}));
+    const health = (u) => fetch(`${u}/health`, { signal: AbortSignal.timeout(4000) }).then((r) => r.ok).catch(() => false);
+    let url = null;
+    for (const u of [...new Set([cfg.url, store.get("liveUrl", null)].filter(Boolean))]) {
+      if (await health(u)) { url = u; break; }
+    }
     if (!url) return;
-    const ok = await fetch(`${url}/health`, { signal: AbortSignal.timeout(4000) }).then((r) => r.ok).catch(() => false);
-    if (!ok) return;
     state.live.url = url; state.live.on = true; emit("live");
     const codes = state.scores.rows.map((r) => r.code);
     const tick = async () => {
