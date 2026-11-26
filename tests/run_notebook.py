@@ -25,7 +25,7 @@ ns = {"__name__": "__main__", "sys": sys, "GITHUB_REPO": "demo/tw-dashboard", "d
 backup = open("config/universe.yaml", encoding="utf-8").read()
 try:
     for i, c in enumerate(codes, 1):
-        if i in (1, 6, 7):  # ① Colab 掛載、⑥ 即時模式（長駐）、工具格
+        if i in (1, 5, 6):  # ① Colab 掛載、⑤ 即時模式（長駐）、工具格
             continue
         src = "".join(c["source"]).replace('MODE = "all"', f'MODE = "{mode}"').replace("USE_AI = True", "USE_AI = bool(os.environ.get('ANTHROPIC_API_KEY'))")
         src = "import os\n" + src.replace("from IPython.display import display", "")

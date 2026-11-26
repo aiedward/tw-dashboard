@@ -60,7 +60,7 @@ export default async function portfolio(el) {
           <button class="btn" id="imp">匯入 JSON</button>
           <button class="btn" id="rst">還原為 GitHub 版本</button>
         </div>
-        <p class="muted small">持股只存在這台裝置的瀏覽器。要讓 Telegram 推播也用同一份持股，請匯出後貼到 Colab 的 holdings 欄位。</p></div>
+        <p class="muted small">持股只存在這台裝置的瀏覽器。要讓每日風險計算用同一份持股，請匯出後貼到 Colab 第 ② 格的 HOLDINGS_JSON。</p></div>
     </div>
     <dialog id="dlg"></dialog>`;
 

@@ -24,11 +24,10 @@ md("""
 | 格 | 功能 |
 |---|---|
 | ① | 掛載 Google 雲端硬碟、下載／更新程式碼 |
-| ② | 參數設定（自選股、AI、推播、持股） |
+| ② | 參數設定（自選股、AI、持股） |
 | ③ | 執行每日更新（抓資料 → 五面向評分 → 輸出 JSON） |
 | ④ | 發佈到 GitHub Pages 網站 |
-| ⑤ | Telegram 推播 |
-| ⑥ | （選用）盤中即時模式：Colab 開著時網站每 10 秒更新報價 |
+| ⑤ | （選用）盤中即時模式：Colab 開著時網站每 10 秒更新報價 |
 
 **第一次使用：** 在左側 🔑「密鑰（Secrets）」新增下列項目，並開啟「筆記本存取權」：
 
@@ -36,7 +35,6 @@ md("""
 |---|---|---|
 | `GH_TOKEN` | GitHub Personal Access Token（repo 權限） | ✅ |
 | `ANTHROPIC_API_KEY` | Claude API key，消息面 AI 摘要 | 建議 |
-| `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID` | Telegram 推播 | 選用 |
 | `FINMIND_TOKEN` | FinMind 免費註冊 token，提高額度 | 選用 |
 
 > 僅供研究參考，不構成投資建議。
@@ -80,7 +78,6 @@ TOP_N = 150  #@param {type:"integer"}
 #@markdown **功能開關**
 USE_AI = True  #@param {type:"boolean"}
 PUBLISH = True  #@param {type:"boolean"}
-NOTIFY = True  #@param {type:"boolean"}
 #@markdown **持股**（選填）：網站「持股管理 → 匯出 JSON」貼上，空白 = 沿用上次
 HOLDINGS_JSON = ""  #@param {type:"string"}
 
@@ -102,9 +99,7 @@ code(r'''
 import importlib, backend.run_daily as rd
 for m in list(sys.modules):
     if m.startswith("backend."): importlib.reload(sys.modules[m])
-user, name = GITHUB_REPO.split("/")
-SITE_URL = f"https://{user.lower()}.github.io/{name}/"
-result = rd.main(mode=MODE, use_ai=USE_AI, push_notify=False, site_url=SITE_URL)
+result = rd.main(mode=MODE, use_ai=USE_AI)
 
 S = result["scores"]
 from IPython.display import display
@@ -120,21 +115,13 @@ if PUBLISH:
 else:
     print("PUBLISH 未勾選，略過")
 '''),
-code(r'''
-#@title ⑤ Telegram 推播 { display-mode: "form" }
-from backend import notify
-if NOTIFY:
-    msg = notify.daily_digest(result["latest"], result["scores"], result["market"], result["portfolio"], SITE_URL)
-    print("已推播" if notify.send(msg) else "推播未送出")
-    print("—" * 40); print(msg.replace("<b>", "").replace("</b>", ""))
-'''),
 md("""
-### ⑥ 盤中即時模式（選用）
+### ⑤ 盤中即時模式（選用）
 執行後，網站會自動切換為即時報價（每 10 秒，證交所 MIS 約 5 秒延遲）。**此格會持續執行**，按 ■ 停止即結束即時模式。
 Colab 免費版閒置約 90 分鐘會斷線，盤中請保持分頁開啟。
 """),
 code(r'''
-#@title ⑥ 啟動即時模式 { display-mode: "form" }
+#@title ⑤ 啟動即時模式 { display-mode: "form" }
 import time, json
 from datetime import datetime
 from backend import live_server
@@ -159,13 +146,11 @@ finally:
     print("即時模式已結束")
 '''),
 code(r'''
-#@title 🔧 工具：測試 Telegram／清除快取 { display-mode: "form" }
-ACTION = "測試 Telegram"  #@param ["測試 Telegram", "清除新聞 AI 快取", "清除全部快取（重新回補）"]
+#@title 🔧 工具：清除快取 { display-mode: "form" }
+ACTION = "清除新聞 AI 快取"  #@param ["清除新聞 AI 快取", "清除全部快取（重新回補）"]
 import shutil
 from backend.config import CACHE_DIR
-if ACTION == "測試 Telegram":
-    from backend import notify; print("成功" if notify.send("✅ tw-dashboard 推播測試") else "失敗")
-elif ACTION == "清除新聞 AI 快取":
+if ACTION == "清除新聞 AI 快取":
     (CACHE_DIR / "news_ai.json").unlink(missing_ok=True); print("已清除")
 else:
     shutil.rmtree(CACHE_DIR); CACHE_DIR.mkdir(); print("已清除，下次執行會重新回補（約 10 分鐘）")

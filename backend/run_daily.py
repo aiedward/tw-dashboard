@@ -9,13 +9,12 @@ import argparse
 import sys
 import time
 
-from . import data, fetch_news, notify, risk, scoring
+from . import data, fetch_news, risk, scoring
 from .config import load_json, load_universe_cfg
 from .export import export_all
 
 
-def main(mode: str = "all", use_ai: bool = True, push_notify: bool = False,
-         site_url: str | None = None, log=print) -> dict:
+def main(mode: str = "all", use_ai: bool = True, log=print) -> dict:
     t0 = time.time()
     cfg = load_universe_cfg()
     weights = load_json("weights.json", {"tech": 30, "chip": 30, "fund": 20, "news": 10, "risk": 10})
@@ -38,10 +37,6 @@ def main(mode: str = "all", use_ai: bool = True, push_notify: bool = False,
     log("⑨ 輸出 JSON…")
     export_all(d, frames, S, news, mlight, port, weights, holdings)
 
-    if push_notify:
-        log("⑩ Telegram 推播…")
-        notify.send(notify.daily_digest(d["latest"], S, mlight, port, site_url))
-
     log(f"✅ 完成，耗時 {time.time() - t0:.0f} 秒｜資料日 {d['latest']}｜{len(S)} 檔｜大盤 {mlight['label']}")
     return {"scores": S, "market": mlight, "portfolio": port, "latest": d["latest"]}
 
@@ -51,8 +46,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", default="all", choices=["all", "watchlist"])
     ap.add_argument("--no-ai", action="store_true")
-    ap.add_argument("--notify", action="store_true")
     a = ap.parse_args()
-    r = main(a.mode, use_ai=not a.no_ai, push_notify=a.notify)
+    r = main(a.mode, use_ai=not a.no_ai)
     cols = ["total", "tech", "chip", "fund", "news", "risk", "close", "chg_pct", "signal"]
     print(r["scores"][cols].head(20).to_string())

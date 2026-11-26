@@ -6,7 +6,6 @@
 - **大盤風險燈號**：指數趨勢、外資期貨未平倉、VIX、匯率、市場寬度
 - **互動 K 線**：均線、布林通道、成交量，副圖可切換法人、MACD、KD、RSI、融資券；圖上標出停損停利線
 - **持股管理**：損益、停損停利警示、產業曝險、組合 VaR 和 Beta、建議部位
-- **Telegram 推播**：每日摘要、買點和持股警示
 - **盤中即時模式**：Colab 開著時，網站每 10 秒更新報價
 
 > 僅供研究參考，不構成投資建議。
@@ -46,7 +45,6 @@ GitHub
 2. 左側 🔑 **密鑰** 新增下列項目，並開啟「筆記本存取權」：
    - `GH_TOKEN`：上一步的 token
    - `ANTHROPIC_API_KEY`：Claude API key（消息面 AI 摘要；用 `claude-haiku-5-5`，150 檔每天約 0.05 美元，新聞沒變的股票走快取不計費；帳戶需先在 console.anthropic.com → Plans & Billing 儲值）
-   - `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`：見第 5 步（選用）
    - `FINMIND_TOKEN`：https://finmindtrade.com 免費註冊（選用，可以提高額度）
 3. 把第 ① 格的 `GITHUB_REPO` 改成 `<帳號>/tw-dashboard`。
 4. 「執行階段 → 全部執行」。第一次要回補 2 年 K 線和 60 天籌碼，約 8–10 分鐘；之後每天約 3 分鐘。
@@ -54,20 +52,15 @@ GitHub
 ### 4. 啟用 GitHub Pages
 第一次執行完後，到 repo → Settings → Pages → Source 選 **Deploy from a branch**，Branch 選 **gh-pages / (root)** → Save。約 1 分鐘後網站上線。
 
-### 5. Telegram Bot（選用）
-1. 在 Telegram 找 **@BotFather** → `/newbot` → 取得 token。
-2. 對你的 bot 傳任意訊息，然後開啟 `https://api.telegram.org/bot<TOKEN>/getUpdates`，找 `"chat":{"id":...}` 的數字，就是 `TELEGRAM_CHAT_ID`。
-3. 執行 Colab 的「🔧 工具 → 測試 Telegram」。
-
-### 6. 安裝成 App
+### 5. 安裝成 App
 - Android 或電腦的 Chrome、Edge：網址列右側的「安裝」圖示
 - iPhone Safari：分享 → 加入主畫面
 
 ## 每日使用
 | 時間 | 動作 |
 |---|---|
-| 盤中（選用） | 執行第 ①、⑥ 格開啟即時模式 |
-| 21:30 後 | 「全部執行」→ 更新網站並推播 |
+| 盤中（選用） | 執行第 ①、⑤ 格開啟即時模式 |
+| 21:30 後 | 「全部執行」→ 更新網站 |
 
 資料公布時間：收盤價 14:30、三大法人約 15:00、融資券約 21:00。15:00 後執行也可以，只是融資券會是前一天的資料。
 
@@ -98,7 +91,7 @@ python tools/build_notebook.py                  # 重新產生筆記本
 ## 檔案結構
 ```
 backend/   config, net, store, fetch_twse, fetch_finmind, fetch_news, indicators,
-           scoring, risk, export, notify, publish, live_server, run_daily
+           scoring, risk, export, publish, live_server, run_daily
 config/    universe.yaml（自選股、股票池）, weights.json, holdings.json
 docs/      PWA 前端（index.html, js/, css/, sw.js, manifest）＋ data/（產生的資料，不進 main）
 tests/     單元測試、筆記本模擬
