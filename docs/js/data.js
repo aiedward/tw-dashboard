@@ -67,11 +67,12 @@ export function quote(code) {
 let timer = null;
 export async function startLive() {
   try {
-    // Quick tunnel 網址每次啟動都會變 → 先試 live.json 的最新網址，手動指定的只當備援
+    // 依序嘗試：Colab live.json（Quick tunnel 網址每次都變）→ 手動指定 → 同站 /api（部署在 Vercel 時常駐）
     const cfg = await getJSON("live.json", false).catch(() => ({}));
     const health = (u) => fetch(`${u}/health`, { signal: AbortSignal.timeout(4000) }).then((r) => r.ok).catch(() => false);
+    const sameSite = new URL("api", location.href).href;
     let url = null;
-    for (const u of [...new Set([cfg.url, store.get("liveUrl", null)].filter(Boolean))]) {
+    for (const u of [...new Set([cfg.url, store.get("liveUrl", null), sameSite].filter(Boolean))]) {
       if (await health(u)) { url = u; break; }
     }
     if (!url) return;

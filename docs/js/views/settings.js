@@ -14,7 +14,7 @@ export default async function settings(el) {
       <p class="muted small">每日更新：盤後在 Google Colab 開啟 <b>tw_dashboard.ipynb</b>，按「執行全部」，約 3–8 分鐘後網站自動更新。法人資料約 15:00、融資券約 21:00 公布，建議 21:30 後執行最完整。</p></div>
 
     <div class="card"><h3>即時模式<span class="r"><span class="dot ${lv.on ? "live" : ""}" style="display:inline-block"></span> ${lv.on ? "連線中" : "未連線"}</span></h3>
-      <p class="small">在 Colab 執行「⑤ 即時模式」那格後，網站會自動偵測並每 10 秒更新報價（證交所 MIS，延遲約 5 秒）。關閉 Colab 即自動回到收盤資料。</p>
+      <p class="small">Vercel 版網站內建即時報價，開盤時間自動每 10 秒更新（證交所 MIS，延遲約 5 秒）。GitHub Pages 版則需在 Colab 執行「⑤ 即時模式」那格，關閉 Colab 即回到收盤資料。</p>
       <div class="form"><label>手動指定即時伺服器網址（通常不必填）<input class="input" id="lu" placeholder="https://xxxx.trycloudflare.com" value="${esc(store.get("liveUrl", "") || "")}"></label></div>
       <div class="toolbar" style="margin-top:10px"><button class="btn" id="lsave">儲存並重新連線</button>${lv.on ? '<button class="btn" id="lstop">中斷</button>' : ""}</div>
       ${lv.on ? `<p class="muted small">伺服器：${esc(lv.url)}｜最後報價 ${esc(lv.time || "")}</p>` : ""}</div>

@@ -1,0 +1,12 @@
+# Vercel 只需要 docs/（網站）、api/（即時報價函式）、vercel.json
+# Python 後端只在 Colab 跑；不讓 Vercel 偵測成 Python 專案
+backend/
+tests/
+tools/
+config/
+cache/
+.venv/
+requirements.txt
+tw_dashboard.ipynb
+README.md
+docs/data/

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": "docs",
+  "regions": ["hnd1"],
+  "rewrites": [
+    { "source": "/data/:path*", "destination": "https://aiedward.github.io/tw-dashboard/data/:path*" }
+  ],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
