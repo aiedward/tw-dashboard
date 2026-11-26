@@ -3,9 +3,6 @@ import * as D from "../data.js";
 
 export default async function overview(el) {
   const s = D.S(), m = s.market, L = m.light;
-  const tx = m.taiex, n = tx.close.length;
-  const last = tx.close[n - 1], prev = tx.close[n - 2];
-  const chg = (last / prev - 1) * 100;
   const inst = m.inst_total.at(-1) || {};
   const fo = (inst.Foreign_Investor || 0) + (inst.Foreign_Dealer_Self || 0);
   const it = inst.Investment_Trust || 0, dl = (inst.Dealer_self || 0) + (inst.Dealer_Hedging || 0);
@@ -18,10 +15,7 @@ export default async function overview(el) {
 
   el.innerHTML = `
   <div class="grid g4">
-    <div class="card kpi"><h3>加權指數<span class="r">${esc(s.meta.date)}</span></h3>
-      <div class="v ${cls(chg)}" data-live="taiex">${fmt(last)}</div>
-      <div class="s ${cls(chg)}">${signed(last - prev, 2)}（${pct(chg)}）</div>
-      ${spark(tx.close.slice(-120), 240, 46, chg >= 0 ? "var(--up)" : "var(--down)")}</div>
+    <div class="card kpi" id="taiex-card">${taiexCard(s)}</div>
     <div class="card kpi"><h3>三大法人（現股）</h3>
       <div class="v ${cls(fo + it + dl)}">${fmtBig(fo + it + dl)}</div>
       <div class="s small">外資 <span class="${cls(fo)}">${fmtBig(fo)}</span>｜投信 <span class="${cls(it)}">${fmtBig(it)}</span>｜自營 <span class="${cls(dl)}">${fmtBig(dl)}</span></div></div>
@@ -53,6 +47,24 @@ export default async function overview(el) {
     <div class="card span2"><h3>⛔ 處置股</h3>
       ${m.disposition.length ? `<ul class="news">${m.disposition.slice(0, 12).map((x) => `<li><span class="s" style="background:var(--r);color:#fff">!</span><div><a href="#/stock/${x.code}">${esc(x.code)} ${esc(x.name || "")}</a>｜${esc(x.measure)}<div class="meta">${esc(x.period)}｜${esc(x.reason)}</div></div></li>`).join("")}</ul>` : '<div class="empty">今日無</div>'}</div>
   </div>`;
+  return D.onChange((w) => {
+    const c = (w === "quotes" || w === "live") && el.querySelector("#taiex-card");
+    if (c) c.innerHTML = taiexCard(D.S());
+  });
+}
+
+// 加權指數：即時模式用 MIS 報價，否則用指數序列最後一天（FinMind 可能比個股收盤早一天更新，所以日期取序列本身的）
+function taiexCard(s) {
+  const tx = s.market.taiex, n = tx.close.length, lv = s.live, mk = lv.on && lv.market;
+  const live = !!(mk && mk.price && mk.prev);
+  const last = live ? mk.price : tx.close[n - 1];
+  const prev = live ? mk.prev : tx.close[n - 2];
+  const chg = (last / prev - 1) * 100;
+  const label = live ? `即時 ${mk.time || lv.time || ""}` : tx.date[n - 1];
+  return `<h3>加權指數<span class="r">${esc(label)}</span></h3>
+      <div class="v ${cls(chg)}">${fmt(last)}</div>
+      <div class="s ${cls(chg)}">${signed(last - prev, 2)}（${pct(chg)}）</div>
+      ${spark(tx.close.slice(-120), 240, 46, chg >= 0 ? "var(--up)" : "var(--down)")}`;
 }
 
 function table(rows) {
